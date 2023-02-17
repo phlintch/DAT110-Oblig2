@@ -17,6 +17,7 @@ public class TemperatureDevice {
 		for (int i = 0; i < COUNT; i++) {
 			try {
 				Thread.sleep(1000);
+
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
@@ -26,8 +27,6 @@ public class TemperatureDevice {
 		}
 		sensor.disconnect();
 		System.out.println("Temperature device stopping ... ");
-
-
 
 	}
 }

@@ -1,5 +1,6 @@
 package no.hvl.dat110.broker;
 
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.Collection;
 
@@ -8,6 +9,9 @@ import no.hvl.dat110.common.Logger;
 import no.hvl.dat110.common.Stopable;
 import no.hvl.dat110.messages.*;
 import no.hvl.dat110.messagetransport.Connection;
+import no.hvl.dat110.messagetransport.MessagingClient;
+
+import javax.swing.*;
 
 public class Dispatcher extends Stopable {
 
@@ -92,7 +96,14 @@ public class Dispatcher extends Stopable {
 		Logger.log("onConnect:" + msg.toString());
 
 		storage.addClientSession(user, connection);
-
+		ArrayList<Message> bufferedMessages = storage.getFromBuffer(user);
+		ClientSession session = storage.getSession(user);
+		if (bufferedMessages != null) {
+			bufferedMessages.forEach(buffMsg -> {
+				session.send(buffMsg);
+			});
+		}
+		storage.cleanBuffer(user);
 
 	}
 
@@ -137,10 +148,17 @@ public class Dispatcher extends Stopable {
 	public void onPublish(PublishMsg msg) {
 		Logger.log("onPublish:" + msg.toString());
 		Set<String> subs = storage.getSubscribers(msg.getTopic());
-		subs.stream().forEach(x -> {
-			ClientSession session = storage.getSession(x);
-			session.send(msg);
-		});
+		if (subs != null) {
+			subs.stream().forEach(x -> {
+				ClientSession session = storage.getSession(x);
+				if (session == null) {
+					Logger.log("Adding message to user: " + x.toString() + "'s buffer [" + msg.getMessage() + "] ");
+					storage.addToBuffer(x, msg);
+				} else {
+					session.send(msg);
+				}
+			});
+		}
 	}
 
 }

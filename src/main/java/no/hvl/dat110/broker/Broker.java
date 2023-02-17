@@ -37,32 +37,37 @@ public class Broker extends Stopable {
 			Connection connection = server.accept();
 			
 			Logger.log("!" + maxaccept);
-			
+
 			waitConnect(connection);
-		
+
 			if (stopable) {
-				
+
 				maxaccept--;
-				
+
 				if (maxaccept < 1) {
-					
+
 					super.doStop();
 				}
 			}
 	}
 	
 	private void waitConnect(Connection connection) {
-				
-		Message msg = MessageUtils.receive(connection);
-		
-		if (msg.getType() == MessageType.CONNECT) {
-			
-			ConnectMsg cmsg = (ConnectMsg) msg;
-			dispatcher.onConnect(cmsg, connection);
-			
-		} else {
-			System.out.println("Protocol error: first message should be connect");
-		}
+		Thread tr = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				Message msg = MessageUtils.receive(connection);
+
+				if (msg.getType() == MessageType.CONNECT) {
+
+					ConnectMsg cmsg = (ConnectMsg) msg;
+					dispatcher.onConnect(cmsg, connection);
+
+				} else {
+					System.out.println("Protocol error: first message should be connect");
+				}
+			}
+		});
+		tr.run();
 	}
 	
 }

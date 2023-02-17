@@ -1,5 +1,7 @@
 package no.hvl.dat110.broker;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -7,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import no.hvl.dat110.common.TODO;
 import no.hvl.dat110.common.Logger;
+import no.hvl.dat110.messages.Message;
 import no.hvl.dat110.messagetransport.Connection;
 
 public class Storage {
@@ -19,10 +22,20 @@ public class Storage {
 	// maps from user to corresponding client session object
 	
 	protected ConcurrentHashMap<String, ClientSession> clients;
-
+	protected ConcurrentHashMap<String, ArrayList<Message>> buffer;
+	public void addToBuffer(String user, Message msg) {
+		buffer.get(user).add(msg);
+	}
+	public ArrayList<Message> getFromBuffer(String user) {
+		return buffer.get(user);
+	}
+	public void cleanBuffer(String user) {
+		buffer.remove(user);
+	}
 	public Storage() {
 		subscriptions = new ConcurrentHashMap<String, Set<String>>();
 		clients = new ConcurrentHashMap<String, ClientSession>();
+		buffer = new ConcurrentHashMap<String, ArrayList<Message>>();
 	}
 
 	public Collection<ClientSession> getSessions() {
@@ -57,9 +70,11 @@ public class Storage {
 	}
 
 	public void removeClientSession(String user) {
-
 		clients.remove(user);
-
+		if (buffer.get(user) == null) {
+			ArrayList<Message> messages = new ArrayList<>();
+			buffer.put(user, messages);
+		}
 	}
 
 	public void createTopic(String topic) {
@@ -72,7 +87,9 @@ public class Storage {
 
 	public void addSubscriber(String user, String topic) {
 		Set subs = subscriptions.get(topic);
-		subs.add(user);
+		if (subs != null) {
+			subs.add(user);
+		}
 	}
 
 	public void removeSubscriber(String user, String topic) {
